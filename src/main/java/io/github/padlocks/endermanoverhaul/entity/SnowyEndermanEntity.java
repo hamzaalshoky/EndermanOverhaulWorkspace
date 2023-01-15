@@ -49,7 +49,6 @@ import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
@@ -237,33 +236,10 @@ public class SnowyEndermanEntity extends EnderMan implements IAnimatable {
         }
 
         this.jumping = false;
+
         if (!this.level.isClientSide) {
             this.updatePersistentAnger((ServerLevel)this.level, true);
-        }
-        BlockPos blockpos = this.blockPosition();
-        BlockPos blockpos1 = blockpos.below();
-        if (!this.level.isClientSide && this.level.getBlockState(blockpos1).is(Blocks.WATER)) {
-            int i = Mth.floor(this.getX());
-            int j = Mth.floor(this.getY() - 1);
-            int k = Mth.floor(this.getZ());
-            BlockPos blockpos2 = new BlockPos(i, j - 1, k);
-            Biome biome = this.level.getBiome(blockpos2).value();
-
-            if (!net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(this.level, this)) {
-                return;
-            }
-
-            BlockState blockstate = Blocks.ICE.defaultBlockState();
-
-            for(int l = 0; l < 4; ++l) {
-                i = Mth.floor(this.getX() + (double)((float)(l % 2 * 2 - 1) * 0.25F));
-                j = Mth.floor(this.getY());
-                k = Mth.floor(this.getZ() + (double)((float)(l / 2 % 2 * 2 - 1) * 0.25F));
-                BlockPos blockpos3 = this.blockPosition().below();
-                if (this.level.isEmptyBlock(blockpos) && blockstate.canSurvive(this.level, blockpos)) {
-                    this.level.setBlockAndUpdate(blockpos3, blockstate);
-                }
-            }
+            this.freezeWaterNearby(this.level, this.blockPosition(), 2);
         }
 
         super.aiStep();
@@ -630,23 +606,21 @@ public class SnowyEndermanEntity extends EnderMan implements IAnimatable {
         return factory;
     }
 
-    public void tick(Level p_45020_, BlockPos p_45021_, int p_45022_){
-        super.tick();
+    public void freezeWaterNearby(Level level, BlockPos endermanPos, int range){
         if (this.isOnGround()) {
             BlockState blockstate = Blocks.FROSTED_ICE.defaultBlockState();
-            float f = (float)Math.min(16, 2 + p_45022_);
+            float f = (float)Math.min(16, 2 + range);
             BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
 
-            for(BlockPos blockpos : BlockPos.betweenClosed(p_45021_.offset((double)(-f), -1.0D, (double)(-f)), p_45021_.offset((double)f, -1.0D, (double)f))) {
+            for(BlockPos blockpos : BlockPos.betweenClosed(endermanPos.offset((double)(-f), -1.0D, (double)(-f)), endermanPos.offset((double)f, -1.0D, (double)f))) {
                 if (blockpos.closerToCenterThan(this.position(), (double)f)) {
                     blockpos$mutableblockpos.set(blockpos.getX(), blockpos.getY() + 1, blockpos.getZ());
-                    BlockState blockstate1 = p_45020_.getBlockState(blockpos$mutableblockpos);
+                    BlockState blockstate1 = level.getBlockState(blockpos$mutableblockpos);
                     if (blockstate1.isAir()) {
-                        BlockState blockstate2 = p_45020_.getBlockState(blockpos);
+                        BlockState blockstate2 = level.getBlockState(blockpos);
                         boolean isFull = blockstate2.getBlock() == Blocks.WATER && blockstate2.getValue(LiquidBlock.LEVEL) == 0; //TODO: Forge, modded waters?
-                        if (blockstate2.getMaterial() == Material.WATER && isFull && blockstate.canSurvive(p_45020_, blockpos) && p_45020_.isUnobstructed(blockstate, blockpos, CollisionContext.empty()) && !net.minecraftforge.event.ForgeEventFactory.onBlockPlace(this, net.minecraftforge.common.util.BlockSnapshot.create(p_45020_.dimension(), p_45020_, blockpos), net.minecraft.core.Direction.UP)) {
-                            p_45020_.setBlockAndUpdate(blockpos, blockstate);
-                            p_45020_.scheduleTick(blockpos, Blocks.FROSTED_ICE, Mth.nextInt(this.getRandom(), 60, 120));
+                        if (blockstate2.getMaterial() == Material.WATER && isFull && blockstate.canSurvive(level, blockpos) && level.isUnobstructed(blockstate, blockpos, CollisionContext.empty()) && !net.minecraftforge.event.ForgeEventFactory.onBlockPlace(this, net.minecraftforge.common.util.BlockSnapshot.create(level.dimension(), level, blockpos), net.minecraft.core.Direction.UP)) {
+                            level.setBlockAndUpdate(blockpos, blockstate);
                         }
                     }
                 }
