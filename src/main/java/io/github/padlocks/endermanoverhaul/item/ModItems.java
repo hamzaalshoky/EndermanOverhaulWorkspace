@@ -2,7 +2,7 @@ package io.github.padlocks.endermanoverhaul.item;
 
 import io.github.padlocks.endermanoverhaul.EndermanOverhaul;
 import io.github.padlocks.endermanoverhaul.entity.ModEntityCreator;
-import net.minecraft.world.item.*;
+import net.minecraft.world.item.Item;
 import net.minecraftforge.common.ForgeSpawnEggItem;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;

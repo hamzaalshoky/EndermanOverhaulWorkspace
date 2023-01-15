@@ -67,6 +67,11 @@
 					]
 				},
 				{
+					"name": "block",
+					"parent": "right_arm",
+					"pivot": [-4, 5.7, 0.2]
+				},
+				{
 					"name": "left_leg",
 					"parent": "main",
 					"pivot": [2, 28, 0],

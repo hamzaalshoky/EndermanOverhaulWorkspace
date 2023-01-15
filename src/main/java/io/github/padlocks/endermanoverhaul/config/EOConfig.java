@@ -1,7 +1,6 @@
 package io.github.padlocks.endermanoverhaul.config;
 
 import io.github.padlocks.endermanoverhaul.EndermanOverhaul;
-import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.config.ModConfig;
 
 public class EOConfig {
