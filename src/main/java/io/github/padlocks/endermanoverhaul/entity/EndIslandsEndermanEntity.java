@@ -7,8 +7,11 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.IndirectEntityDamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -29,6 +32,7 @@ import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.pathfinder.BlockPathTypes;
+import net.minecraft.world.phys.AABB;
 import software.bernie.geckolib3.core.IAnimatable;
 import software.bernie.geckolib3.core.PlayState;
 import software.bernie.geckolib3.core.builder.AnimationBuilder;
@@ -37,6 +41,8 @@ import software.bernie.geckolib3.core.event.predicate.AnimationEvent;
 import software.bernie.geckolib3.core.manager.AnimationData;
 import software.bernie.geckolib3.core.manager.AnimationFactory;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class EndIslandsEndermanEntity extends EnderMan implements IAnimatable {
@@ -54,25 +60,25 @@ public class EndIslandsEndermanEntity extends EnderMan implements IAnimatable {
         this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0D, 0.0F));
         this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
-        this.targetSelector.addGoal(2, new HurtByTargetGoal(this));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(EnderMan.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(SavannaEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(BadlandsEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(CaveEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(CrimsonForestEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(DarkOakEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(DesertEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(EndEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(FlowerFieldsEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(IceSpikesEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(MushroomEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(NetherWastesEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(OceanEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(SnowyEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(SoulsandValleyEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(SwampEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(WarpedForestEndermanEntity.class));
-        this.goalSelector.addGoal(4, new HurtByTargetGoal(this).setAlertOthers(WindsweptHillsEndermanEntity.class));
+        this.targetSelector.addGoal(2, new HurtByTargetAlertOtherEndermanGoal(this,
+                EnderMan.class,
+                SavannaEndermanEntity.class,
+                BadlandsEndermanEntity.class,
+                CaveEndermanEntity.class,
+                CrimsonForestEndermanEntity.class,
+                DarkOakEndermanEntity.class,
+                DesertEndermanEntity.class,
+                EndEndermanEntity.class,
+                FlowerFieldsEndermanEntity.class,
+                IceSpikesEndermanEntity.class,
+                MushroomEndermanEntity.class,
+                NetherWastesEndermanEntity.class,
+                OceanEndermanEntity.class,
+                SnowyEndermanEntity.class,
+                SoulsandValleyEndermanEntity.class,
+                SwampEndermanEntity.class,
+                WarpedForestEndermanEntity.class,
+                WindsweptHillsEndermanEntity.class).setAlertOthers());
         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Endermite.class, true, false));
         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Player.class, true, false));
     }
@@ -199,4 +205,45 @@ public class EndIslandsEndermanEntity extends EnderMan implements IAnimatable {
         return factory;
     }
 
+
+    private static class HurtByTargetAlertOtherEndermanGoal extends HurtByTargetGoal {
+        private final Class<?>[] classesToAlert;
+        public HurtByTargetAlertOtherEndermanGoal(PathfinderMob enderman, Class<?>... classesToAlert) {
+            super(enderman);
+            this.classesToAlert = classesToAlert;
+        }
+
+        @Override
+        protected void alertOthers() {
+            double d0 = this.getFollowDistance();
+            AABB aabb = AABB.unitCubeFromLowerCorner(this.mob.position()).inflate(d0, 10.0D, d0);
+            List<? extends Mob> list = new ArrayList<>();
+
+            for (Class alertClass : this.classesToAlert) {
+                 list.addAll(this.mob.level.getEntitiesOfClass(alertClass, aabb, EntitySelector.NO_SPECTATORS));
+            }
+
+            Iterator iterator = list.iterator();
+
+            while(true) {
+                Mob mob;
+                while(true) {
+                    if (!iterator.hasNext()) {
+                        return;
+                    }
+
+                    mob = (Mob)iterator.next();
+                    if (this.mob != mob && mob.getTarget() == null && (!(this.mob instanceof TamableAnimal) || ((TamableAnimal)this.mob).getOwner() == ((TamableAnimal)mob).getOwner()) && !mob.isAlliedTo(this.mob.getLastHurtByMob())) {
+                        boolean flag = false;
+
+                        if (!flag) {
+                            break;
+                        }
+                    }
+                }
+
+                this.alertOther(mob, this.mob.getLastHurtByMob());
+            }
+        }
+    }
 }
